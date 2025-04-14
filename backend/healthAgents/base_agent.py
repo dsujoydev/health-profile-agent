@@ -2,7 +2,6 @@ from agno.agent import Agent
 from agno.models.groq import Groq
 import os
 
-
 class BaseAgent:
     def __init__(self, name, description, avatar="default_avatar.png"):
 
