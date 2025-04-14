@@ -2,13 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-
-# Import all health agents
-from healthAgents.health_profile_agent import HealthProfileAgent
-from healthAgents.workout_plan_agent import WorkoutPlanAgent
-# from healthAgents.nutrition_agent import NutritionAgent
-from healthAgents.progress_tracking_agent import ProgressTrackingAgent
-from healthAgents.health_info_agent import HealthInfoAgent
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -17,12 +11,202 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Initialize all agents
-health_profile_agent = HealthProfileAgent()
-workout_plan_agent = WorkoutPlanAgent()
+class BaseAgent:
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+        self.api_key = os.getenv("GROQ_API_KEY")
+
+    def get_response(self, prompt):
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {"role": "system", "content": f"You are {self.name}, {self.description}. Respond in a helpful, concise, and professional manner."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 500
+            }
+
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+            else:
+                return f"Error: {response.status_code} - {response.text}"
+        except Exception as e:
+            return f"An error occurred: {str(e)}"
+
+class HealthProfileAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "HealthProfiler",
+            "a health profile specialist who helps users set up wellness profiles, understand their goals, and guide them to the right resources"
+        )
+        
+        # Sample health goals that could be stored in a database later
+        self.health_goals = [
+            "Weight management",
+            "Muscle building",
+            "Cardiovascular health",
+            "Stress reduction",
+            "Better sleep",
+            "Improved nutrition"
+        ]
+
+    def greet(self, user_type=None):
+        if user_type == "new_user":
+            return self.get_response(
+                "Generate a friendly, encouraging greeting for someone new to health and wellness coaching. "
+                "Mention that we'll start by creating a health profile and understanding their goals."
+            )
+        elif user_type == "returning_user":
+            return self.get_response(
+                "Generate a warm welcome back message for a returning wellness client. "
+                "Ask how they've been progressing with their goals and if they need any adjustments to their plan."
+            )
+        elif user_type == "fitness_focused":
+            return self.get_response(
+                "Generate an energetic greeting for someone primarily interested in fitness. "
+                "Mention that they can check out the Workout Plans section and Nutrition guides."
+            )
+        else:
+            return self.get_response(
+                "Generate a friendly, general greeting for someone interested in health and wellness coaching. "
+                "Ask about their primary health goals to provide more tailored guidance."
+            )
+
+    def suggest_program(self, health_interest):
+        prompt = f"Based on a user expressing interest in '{health_interest}', suggest which wellness program would be most beneficial. Options include: Workout Plans, Nutrition Guidance, Stress Management, Sleep Improvement, Health Tracking. Explain why in 1-2 sentences."
+        return self.get_response(prompt)
+        
+    def create_initial_assessment(self, user_info):
+        """
+        Create an initial health assessment based on user information
+        """
+        prompt = f"""
+        Create an initial health assessment based on the following user information:
+        
+        Age: {user_info.get('age', 'Not provided')}
+        Height: {user_info.get('height', 'Not provided')}
+        Weight: {user_info.get('weight', 'Not provided')}
+        Activity Level: {user_info.get('activity_level', 'Not provided')}
+        Health Concerns: {user_info.get('health_concerns', 'None mentioned')}
+        Goals: {user_info.get('goals', 'Not specified')}
+        
+        Provide:
+        1. A brief summary of their current health status
+        2. Recommended focus areas
+        3. Suggested first steps
+        4. Any health metrics they should track
+        
+        Format the response in a friendly, encouraging tone.
+        """
+        return self.get_response(prompt)
+
+class WorkoutPlanAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "WorkoutPlanner",
+            "a fitness specialist who creates personalized workout plans and provides exercise guidance"
+        )
+    
+    def generate_workout_plan(self, user_profile):
+        prompt = f"Generate a detailed workout plan for a user with the following profile: {user_profile}"
+        return self.get_response(prompt)
+    
+    def suggest_exercise_alternatives(self, exercise, equipment=None, difficulty=None):
+        prompt = f"Suggest alternatives for {exercise} exercise"
+        if equipment:
+            prompt += f" using {equipment} equipment"
+        if difficulty:
+            prompt += f" at {difficulty} difficulty level"
+        return self.get_response(prompt)
+    
+    def create_quick_workout(self, time_available, focus_area, equipment=None):
+        prompt = f"Create a quick {time_available} workout focusing on {focus_area}"
+        if equipment:
+            prompt += f" using {equipment} equipment"
+        return self.get_response(prompt)
+    
+    def provide_form_guidance(self, exercise):
+        prompt = f"Provide detailed form guidance for {exercise} exercise"
+        return self.get_response(prompt)
+
+class ProgressTrackingAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "ProgressTracker",
+            "a progress tracking specialist who helps analyze fitness data and suggest adjustments"
+        )
+    
+    def analyze_progress(self, user_data):
+        prompt = f"Analyze the following fitness progress data: {user_data}"
+        return self.get_response(prompt)
+    
+    def suggest_adjustments(self, current_plan, progress_data):
+        prompt = f"Suggest adjustments to the following fitness plan based on progress data:\nCurrent Plan: {current_plan}\nProgress Data: {progress_data}"
+        return self.get_response(prompt)
+    
+    def create_milestone_plan(self, goal, current_status, timeframe):
+        prompt = f"Create a milestone plan to achieve the following goal:\nGoal: {goal}\nCurrent Status: {current_status}\nTimeframe: {timeframe}"
+        return self.get_response(prompt)
+    
+    def interpret_plateau(self, plateau_data):
+        prompt = f"Interpret and provide strategies for overcoming the following fitness plateau: {plateau_data}"
+        return self.get_response(prompt)
+    
+    def celebrate_achievement(self, achievement):
+        prompt = f"Create an enthusiastic celebration message for the following fitness achievement: {achievement}"
+        return self.get_response(prompt)
+
+class HealthInfoAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "HealthEducator",
+            "a health information specialist who provides evidence-based information about fitness, nutrition, and wellness topics"
+        )
+    
+    def explain_concept(self, concept):
+        prompt = f"Explain the following health/fitness concept in detail: {concept}"
+        return self.get_response(prompt)
+    
+    def answer_health_question(self, question):
+        prompt = f"Answer the following health/fitness question with evidence-based information: {question}"
+        return self.get_response(prompt)
+    
+    def debunk_myth(self, myth):
+        prompt = f"Debunk the following health/fitness myth with scientific evidence: {myth}"
+        return self.get_response(prompt)
+    
+    def explain_research_finding(self, research_topic):
+        prompt = f"Explain current research findings on the following health/fitness topic: {research_topic}"
+        return self.get_response(prompt)
+    
+    def create_educational_content(self, topic, format_type="article"):
+        prompt = f"Create educational {format_type} content about the following health/fitness topic: {topic}"
+        return self.get_response(prompt)
+    
+    def compare_approaches(self, approach1, approach2, goal):
+        prompt = f"Compare the following approaches for achieving this health/fitness goal:\nGoal: {goal}\nApproach 1: {approach1}\nApproach 2: {approach2}"
+        return self.get_response(prompt)
+
+# Initialize all agents with the new classes
+health_profile_agent = HealthProfileAgentClass()
+workout_plan_agent = WorkoutPlanAgentClass()
 # nutrition_agent = NutritionAgent()
-progress_tracking_agent = ProgressTrackingAgent()
-health_info_agent = HealthInfoAgent()
+progress_tracking_agent = ProgressTrackingAgentClass()
+health_info_agent = HealthInfoAgentClass()
 
 # Health Profile Agent endpoints
 @app.route('/api/health/profile/greet', methods=['POST'])
