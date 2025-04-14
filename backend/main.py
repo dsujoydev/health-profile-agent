@@ -1,27 +1,23 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-import json
 import requests
-from flask_cors import CORS
 
-
+# Load environment variables
 load_dotenv()
 
-
+# Initialize Flask app
 app = Flask(__name__)
 CORS(app)
-
 
 class BaseAgent:
     def __init__(self, name, description):
         self.name = name
         self.description = description
-
         self.api_key = os.getenv("GROQ_API_KEY")
 
     def get_response(self, prompt):
-
         try:
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -51,250 +47,423 @@ class BaseAgent:
         except Exception as e:
             return f"An error occurred: {str(e)}"
 
-class WelcomeAgent(BaseAgent):
+class HealthProfileAgentClass(BaseAgent):
     def __init__(self):
         super().__init__(
-            "WelcomeAgent",
-            "a welcome specialist who greets visitors and helps them navigate the portfolio website"
+            "HealthProfiler",
+            "a health profile specialist who helps users set up wellness profiles, understand their goals, and guide them to the right resources"
         )
+        
+        # Sample health goals that could be stored in a database later
+        self.health_goals = [
+            "Weight management",
+            "Muscle building",
+            "Cardiovascular health",
+            "Stress reduction",
+            "Better sleep",
+            "Improved nutrition"
+        ]
 
-    def greet(self, visitor_type=None):
-        if visitor_type == "employer":
-            return self.get_response("Generate a warm welcome message for an employer visiting a programmer's portfolio website. Suggest they check out the Projects and Career sections.")
-        elif visitor_type == "client":
-            return self.get_response("Generate a warm welcome message for a potential client visiting a programmer's portfolio website. Suggest they check out the Services section.")
-        elif visitor_type == "fellow_programmer":
-            return self.get_response("Generate a warm welcome message for a fellow programmer visiting a programmer's portfolio website. Suggest they check out the Projects and Research sections.")
+    def greet(self, user_type=None):
+        if user_type == "new_user":
+            return self.get_response(
+                "Generate a friendly, encouraging greeting for someone new to health and wellness coaching. "
+                "Mention that we'll start by creating a health profile and understanding their goals."
+            )
+        elif user_type == "returning_user":
+            return self.get_response(
+                "Generate a warm welcome back message for a returning wellness client. "
+                "Ask how they've been progressing with their goals and if they need any adjustments to their plan."
+            )
+        elif user_type == "fitness_focused":
+            return self.get_response(
+                "Generate an energetic greeting for someone primarily interested in fitness. "
+                "Mention that they can check out the Workout Plans section and Nutrition guides."
+            )
         else:
-            return self.get_response("Generate a general welcome message for a visitor to a programmer's portfolio website. Ask if they are an employer, client, or fellow programmer.")
+            return self.get_response(
+                "Generate a friendly, general greeting for someone interested in health and wellness coaching. "
+                "Ask about their primary health goals to provide more tailored guidance."
+            )
 
-    def suggest_section(self, interest):
-        return self.get_response(f"A visitor to my portfolio website has expressed interest in {interest}. Suggest which section(s) of the website they should visit based on this interest.")
-
-class ProjectAgent(BaseAgent):
-    def __init__(self):
-        super().__init__(
-            "ProjectAgent",
-            "a project specialist who provides detailed information about the programmer's projects"
-        )
-
-    def get_project_list(self):
-        return self.get_response("Generate a list of 3-5 impressive software development projects that could be in a programmer's portfolio. Include a brief description for each.")
-
-    def get_project_details(self, project_id):
-        project_prompts = {
-            "project1": "Describe in detail an e-commerce platform project for a programmer's portfolio. Include technologies used, challenges overcome, and key features.",
-            "project2": "Describe in detail a task management application project for a programmer's portfolio. Include technologies used, challenges overcome, and key features.",
-            "project3": "Describe in detail a data visualization dashboard project for a programmer's portfolio. Include technologies used, challenges overcome, and key features."
-        }
-
-        prompt = project_prompts.get(
-            project_id, f"Describe a project called {project_id} in detail.")
+    def suggest_program(self, health_interest):
+        prompt = f"Based on a user expressing interest in '{health_interest}', suggest which wellness program would be most beneficial. Options include: Workout Plans, Nutrition Guidance, Stress Management, Sleep Improvement, Health Tracking. Explain why in 1-2 sentences."
+        return self.get_response(prompt)
+        
+    def create_initial_assessment(self, user_info):
+        """
+        Create an initial health assessment based on user information
+        """
+        prompt = f"""
+        Create an initial health assessment based on the following user information:
+        
+        Age: {user_info.get('age', 'Not provided')}
+        Height: {user_info.get('height', 'Not provided')}
+        Weight: {user_info.get('weight', 'Not provided')}
+        Activity Level: {user_info.get('activity_level', 'Not provided')}
+        Health Concerns: {user_info.get('health_concerns', 'None mentioned')}
+        Goals: {user_info.get('goals', 'Not specified')}
+        
+        Provide:
+        1. A brief summary of their current health status
+        2. Recommended focus areas
+        3. Suggested first steps
+        4. Any health metrics they should track
+        
+        Format the response in a friendly, encouraging tone.
+        """
         return self.get_response(prompt)
 
-    def answer_technical_question(self, project_id, question):
-        return self.get_response(f"Answer this technical question about a project: '{question}'. The project is {project_id}.")
-
-class CareerAgent(BaseAgent):
+class WorkoutPlanAgentClass(BaseAgent):
     def __init__(self):
         super().__init__(
-            "CareerAgent",
-            "a career specialist who provides information about the programmer's skills and experience"
+            "WorkoutPlanner",
+            "a fitness specialist who creates personalized workout plans and provides exercise guidance"
         )
-
-    def get_skills_summary(self):
-        return self.get_response("Generate a comprehensive summary of technical and professional skills for a full-stack developer's portfolio.")
-
-    def get_experience_summary(self):
-        return self.get_response("Generate a summary of work experience for a full-stack developer with 5+ years of experience.")
-
-    def assess_job_fit(self, job_description):
-        return self.get_response(f"Assess how well a full-stack developer with 5+ years of experience would fit this job description: '{job_description}'. Highlight matching skills and experience.")
-
-class ClientAgent(BaseAgent):
-    def __init__(self):
-        super().__init__(
-            "ClientAgent",
-            "a client specialist who provides information about services, pricing, and the client engagement process"
-        )
-
-    def get_services_overview(self):
-        return self.get_response("Generate an overview of services that a freelance full-stack developer might offer to clients.")
-
-    def get_service_details(self, service_type):
-        service_prompts = {
-            "web_development": "Describe web development services offered by a freelance full-stack developer, including technologies, pricing range, and typical timeline.",
-            "mobile_development": "Describe mobile app development services offered by a freelance full-stack developer, including technologies, pricing range, and typical timeline.",
-            "consulting": "Describe technical consulting services offered by a freelance full-stack developer, including areas of expertise, hourly rate range, and engagement model."
-        }
-
-        prompt = service_prompts.get(
-            service_type, f"Describe {service_type} services in detail.")
+    
+    def generate_workout_plan(self, user_profile):
+        prompt = f"Generate a detailed workout plan for a user with the following profile: {user_profile}"
+        return self.get_response(prompt)
+    
+    def suggest_exercise_alternatives(self, exercise, equipment=None, difficulty=None):
+        prompt = f"Suggest alternatives for {exercise} exercise"
+        if equipment:
+            prompt += f" using {equipment} equipment"
+        if difficulty:
+            prompt += f" at {difficulty} difficulty level"
+        return self.get_response(prompt)
+    
+    def create_quick_workout(self, time_available, focus_area, equipment=None):
+        prompt = f"Create a quick {time_available} workout focusing on {focus_area}"
+        if equipment:
+            prompt += f" using {equipment} equipment"
+        return self.get_response(prompt)
+    
+    def provide_form_guidance(self, exercise):
+        prompt = f"Provide detailed form guidance for {exercise} exercise"
         return self.get_response(prompt)
 
-    def explain_process(self):
-        return self.get_response("Explain the client engagement process for a freelance full-stack developer, from initial consultation to project delivery.")
-
-    def generate_proposal(self, project_description):
-        return self.get_response(f"Generate a project proposal for this client request: '{project_description}'. Include estimated timeline, cost range, and approach.")
-
-class ResearchAgent(BaseAgent):
+class ProgressTrackingAgentClass(BaseAgent):
     def __init__(self):
         super().__init__(
-            "ResearchAgent",
-            "a research specialist who provides information about technologies, trends, and industry news"
+            "ProgressTracker",
+            "a progress tracking specialist who helps analyze fitness data and suggest adjustments"
         )
+    
+    def analyze_progress(self, user_data):
+        prompt = f"Analyze the following fitness progress data: {user_data}"
+        return self.get_response(prompt)
+    
+    def suggest_adjustments(self, current_plan, progress_data):
+        prompt = f"Suggest adjustments to the following fitness plan based on progress data:\nCurrent Plan: {current_plan}\nProgress Data: {progress_data}"
+        return self.get_response(prompt)
+    
+    def create_milestone_plan(self, goal, current_status, timeframe):
+        prompt = f"Create a milestone plan to achieve the following goal:\nGoal: {goal}\nCurrent Status: {current_status}\nTimeframe: {timeframe}"
+        return self.get_response(prompt)
+    
+    def interpret_plateau(self, plateau_data):
+        prompt = f"Interpret and provide strategies for overcoming the following fitness plateau: {plateau_data}"
+        return self.get_response(prompt)
+    
+    def celebrate_achievement(self, achievement):
+        prompt = f"Create an enthusiastic celebration message for the following fitness achievement: {achievement}"
+        return self.get_response(prompt)
 
-    def search_web(self, query):
-        return self.get_response(f"Provide information about '{query}' as if you've just searched the web for the latest information. Include key points and insights.")
-
-    def compare_technologies(self, tech1, tech2):
-        return self.get_response(f"Compare {tech1} vs {tech2} in terms of features, performance, use cases, community support, and future prospects.")
-
-    def get_industry_trends(self):
-        return self.get_response("Describe current trends in software development and technology that are important for developers to be aware of.")
-
-
-welcome_agent = WelcomeAgent()
-project_agent = ProjectAgent()
-career_agent = CareerAgent()
-client_agent = ClientAgent()
-research_agent = ResearchAgent()
-
-@app.route('/static/images/default_avatar.png')
-@app.route('/static/images/default_project.jpg')
-def block_default_images():
-
-    response = app.make_response(
-        b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
-    response.headers['Content-Type'] = 'image/gif'
-
-    response.headers['Cache-Control'] = 'public, max-age=31536000'
-    response.headers['Expires'] = 'Thu, 31 Dec 2037 23:59:59 GMT'
-    return response
-
-
-@app.route('/api/welcome', methods=['POST'])
-def welcome_agent_endpoint():
-    data = request.json
-    message = data.get('message', '')
-
-    visitor_type = None
-    if 'employer' in message.lower():
-        visitor_type = 'employer'
-    elif 'client' in message.lower():
-        visitor_type = 'client'
-    elif 'programmer' in message.lower() or 'developer' in message.lower():
-        visitor_type = 'fellow_programmer'
-
-    if 'interest' in message.lower() or 'looking for' in message.lower():
-
-        interest = message.replace('interest', '').replace(
-            'looking for', '').strip()
-        response = welcome_agent.suggest_section(interest)
-    else:
-        response = welcome_agent.greet(visitor_type)
-
-    return jsonify({'response': response})
-
-@app.route('/api/project', methods=['POST'])
-def project_agent_endpoint():
-    data = request.json
-    message = data.get('message', '')
-
-    project_id = None
-    if 'e-commerce' in message.lower() or 'ecommerce' in message.lower():
-        project_id = 'project1'
-    elif 'task' in message.lower() or 'management' in message.lower():
-        project_id = 'project2'
-    elif 'data' in message.lower() or 'visualization' in message.lower() or 'dashboard' in message.lower():
-        project_id = 'project3'
-
-    if project_id and ('tell me more' in message.lower() or 'details' in message.lower()):
-        response = project_agent.get_project_details(project_id)
-    elif 'list' in message.lower() or 'all projects' in message.lower():
-        response = project_agent.get_project_list()
-    elif project_id:
-
-        response = project_agent.answer_technical_question(project_id, message)
-    else:
-
-        response = project_agent.get_response(
-            f"The user asked: '{message}'. Respond as if you are a project specialist for a portfolio website. "
-            "If they're asking about a specific project, suggest they mention one of the projects: "
-            "E-commerce Platform, Task Management App, or Data Visualization Dashboard."
+class HealthInfoAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "HealthEducator",
+            "a health information specialist who provides evidence-based information about fitness, nutrition, and wellness topics"
         )
+    
+    def explain_concept(self, concept):
+        prompt = f"Explain the following health/fitness concept in detail: {concept}"
+        return self.get_response(prompt)
+    
+    def answer_health_question(self, question):
+        prompt = f"Answer the following health/fitness question with evidence-based information: {question}"
+        return self.get_response(prompt)
+    
+    def debunk_myth(self, myth):
+        prompt = f"Debunk the following health/fitness myth with scientific evidence: {myth}"
+        return self.get_response(prompt)
+    
+    def explain_research_finding(self, research_topic):
+        prompt = f"Explain current research findings on the following health/fitness topic: {research_topic}"
+        return self.get_response(prompt)
+    
+    def create_educational_content(self, topic, format_type="article"):
+        prompt = f"Create educational {format_type} content about the following health/fitness topic: {topic}"
+        return self.get_response(prompt)
+    
+    def compare_approaches(self, approach1, approach2, goal):
+        prompt = f"Compare the following approaches for achieving this health/fitness goal:\nGoal: {goal}\nApproach 1: {approach1}\nApproach 2: {approach2}"
+        return self.get_response(prompt)
 
-    return jsonify({'response': response})
-
-@app.route('/api/career', methods=['POST'])
-def career_agent_endpoint():
-    data = request.json
-    message = data.get('message', '')
-
-    if 'skills' in message.lower():
-        response = career_agent.get_skills_summary()
-    elif 'experience' in message.lower() or 'work history' in message.lower():
-        response = career_agent.get_experience_summary()
-    elif 'job' in message.lower() or 'position' in message.lower() or 'role' in message.lower():
-
-        response = career_agent.assess_job_fit(message)
-    else:
-
-        response = career_agent.get_response(
-            f"The user asked: '{message}'. Respond as if you are a career specialist for a portfolio website. "
-            "Suggest they ask about skills, experience, or job fit assessment."
+class NutritionAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "NutritionCoach",
+            "a nutrition specialist who creates meal plans, provides dietary advice, and helps users make healthy food choices"
         )
+    
+    def create_meal_plan(self, user_profile):
+        prompt = f"""
+        Create a 3-day meal plan for a user with the following profile:
+        
+        Age: {user_profile.get('age', 'Not provided')}
+        Weight: {user_profile.get('weight', 'Not provided')}
+        Height: {user_profile.get('height', 'Not provided')}
+        Activity Level: {user_profile.get('activity_level', 'Not provided')}
+        Dietary Restrictions: {user_profile.get('dietary_restrictions', 'None')}
+        Goals: {user_profile.get('goals', 'Balanced nutrition')}
+        
+        Include breakfast, lunch, dinner, and snacks for each day.
+        Provide approximate calorie counts for each meal.
+        Format the response in markdown.
+        """
+        return self.get_response(prompt)
+    
+    def suggest_food_alternatives(self, food, dietary_restriction=None):
+        prompt = f"Suggest healthy alternatives for {food}"
+        if dietary_restriction:
+            prompt += f" that are suitable for someone with {dietary_restriction} dietary restriction"
+        prompt += ". Include nutritional benefits of each alternative."
+        return self.get_response(prompt)
+    
+    def analyze_meal(self, meal_description):
+        prompt = f"""
+        Analyze the following meal in terms of nutritional value:
+        
+        {meal_description}
+        
+        Provide:
+        1. Approximate macronutrient breakdown (protein, carbs, fats)
+        2. Estimated calorie count
+        3. Nutritional strengths of this meal
+        4. Suggestions for improving nutritional balance
+        """
+        return self.get_response(prompt)
+    
+    def provide_nutrition_tips(self, goal):
+        prompt = f"""
+        Provide 5 evidence-based nutrition tips for someone with the following health/fitness goal:
+        
+        {goal}
+        
+        For each tip, include:
+        1. A brief explanation of why it works
+        2. A practical way to implement it
+        3. A common mistake to avoid
+        """
+        return self.get_response(prompt)
+    
+    def create_shopping_list(self, dietary_preferences="balanced", days=7):
+        prompt = f"""
+        Create a comprehensive grocery shopping list for {days} days of {dietary_preferences} eating.
+        
+        Include:
+        1. Fresh produce
+        2. Proteins
+        3. Grains and starches
+        4. Dairy or alternatives
+        5. Healthy fats
+        6. Seasonings and condiments
+        7. Snacks
+        
+        Organize by grocery store section and include approximate quantities.
+        """
+        return self.get_response(prompt)
 
-    return jsonify({'response': response})
+# Initialize all agents with the new classes
+health_profile_agent = HealthProfileAgentClass()
+workout_plan_agent = WorkoutPlanAgentClass()
+nutrition_agent = NutritionAgentClass()
+progress_tracking_agent = ProgressTrackingAgentClass()
+health_info_agent = HealthInfoAgentClass()
 
-
-@app.route('/api/client', methods=['POST'])
-def client_agent_endpoint():
+# Health Profile Agent endpoints
+@app.route('/api/health/profile/greet', methods=['POST'])
+def health_profile_greet():
     data = request.json
-    message = data.get('message', '')
-
-    if 'services' in message.lower() or 'offerings' in message.lower():
-        response = client_agent.get_services_overview()
-    elif 'web' in message.lower() and 'development' in message.lower():
-        response = client_agent.get_service_details('web_development')
-    elif 'mobile' in message.lower() and 'development' in message.lower():
-        response = client_agent.get_service_details('mobile_development')
-    elif 'consulting' in message.lower() or 'technical consulting' in message.lower():
-        response = client_agent.get_service_details('consulting')
-    elif 'process' in message.lower() or 'how does it work' in message.lower():
-        response = client_agent.explain_process()
-    elif 'proposal' in message.lower() or 'quote' in message.lower() or 'estimate' in message.lower():
-
-        response = client_agent.generate_proposal(message)
-    else:
-
-        response = client_agent.get_response(
-            f"The user asked: '{message}'. Respond as if you are a client specialist for a portfolio website. "
-            "Suggest they ask about services, the client engagement process, or request a proposal."
-        )
-
+    user_type = data.get('user_type', None)
+    response = health_profile_agent.greet(user_type)
     return jsonify({'response': response})
 
-@app.route('/api/research', methods=['POST'])
-def research_agent_endpoint():
+@app.route('/api/health/profile/suggest-program', methods=['POST'])
+def health_profile_suggest_program():
     data = request.json
-    message = data.get('message', '')
-
-    if 'compare' in message.lower() and ('vs' in message.lower() or 'versus' in message.lower()):
-
-        tech_parts = message.lower().replace('compare', '').replace(
-            'vs', ' ').replace('versus', ' ').split()
-        tech1 = tech_parts[0] if len(tech_parts) > 0 else ''
-        tech2 = tech_parts[-1] if len(tech_parts) > 1 else ''
-        response = research_agent.compare_technologies(tech1, tech2)
-    elif 'trends' in message.lower() or 'industry' in message.lower():
-        response = research_agent.get_industry_trends()
-    else:
-        response = research_agent.search_web(message)
-
+    health_interest = data.get('health_interest', '')
+    response = health_profile_agent.suggest_program(health_interest)
     return jsonify({'response': response})
 
+@app.route('/api/health/profile/assessment', methods=['POST'])
+def health_profile_assessment():
+    data = request.json
+    user_info = data.get('user_info', {})
+    response = health_profile_agent.create_initial_assessment(user_info)
+    return jsonify({'response': response})
+
+# Workout Plan Agent endpoints
+@app.route('/api/health/workout/plan', methods=['POST'])
+def workout_generate_plan():
+    data = request.json
+    user_profile = data.get('user_profile', {})
+    response = workout_plan_agent.generate_workout_plan(user_profile)
+    return jsonify({'response': response})
+
+@app.route('/api/health/workout/alternatives', methods=['POST'])
+def workout_alternatives():
+    data = request.json
+    exercise = data.get('exercise', '')
+    equipment = data.get('equipment', None)
+    difficulty = data.get('difficulty', None)
+    response = workout_plan_agent.suggest_exercise_alternatives(exercise, equipment, difficulty)
+    return jsonify({'response': response})
+
+@app.route('/api/health/workout/quick', methods=['POST'])
+def workout_quick():
+    data = request.json
+    time_available = data.get('time_available', '30 minutes')
+    focus_area = data.get('focus_area', 'full body')
+    equipment = data.get('equipment', None)
+    response = workout_plan_agent.create_quick_workout(time_available, focus_area, equipment)
+    return jsonify({'response': response})
+
+@app.route('/api/health/workout/form-guidance', methods=['POST'])
+def workout_form_guidance():
+    data = request.json
+    exercise = data.get('exercise', '')
+    response = workout_plan_agent.provide_form_guidance(exercise)
+    return jsonify({'response': response})
+
+# Nutrition Agent endpoints
+@app.route('/api/health/nutrition/meal-plan', methods=['POST'])
+def nutrition_meal_plan():
+    data = request.json
+    user_profile = data.get('user_profile', {})
+    response = nutrition_agent.create_meal_plan(user_profile)
+    return jsonify({'response': response})
+
+@app.route('/api/health/nutrition/food-alternatives', methods=['POST'])
+def nutrition_food_alternatives():
+    data = request.json
+    food = data.get('food', '')
+    dietary_restriction = data.get('dietary_restriction', None)
+    response = nutrition_agent.suggest_food_alternatives(food, dietary_restriction)
+    return jsonify({'response': response})
+
+@app.route('/api/health/nutrition/analyze-meal', methods=['POST'])
+def nutrition_analyze_meal():
+    data = request.json
+    meal_description = data.get('meal_description', '')
+    response = nutrition_agent.analyze_meal(meal_description)
+    return jsonify({'response': response})
+
+@app.route('/api/health/nutrition/tips', methods=['POST'])
+def nutrition_tips():
+    data = request.json
+    goal = data.get('goal', '')
+    response = nutrition_agent.provide_nutrition_tips(goal)
+    return jsonify({'response': response})
+
+@app.route('/api/health/nutrition/shopping-list', methods=['POST'])
+def nutrition_shopping_list():
+    data = request.json
+    dietary_preferences = data.get('dietary_preferences', 'balanced')
+    days = data.get('days', 7)
+    response = nutrition_agent.create_shopping_list(dietary_preferences, days)
+    return jsonify({'response': response})
+
+# Progress Tracking Agent endpoints
+@app.route('/api/health/progress/analyze', methods=['POST'])
+def progress_analyze():
+    data = request.json
+    user_data = data.get('user_data', {})
+    response = progress_tracking_agent.analyze_progress(user_data)
+    return jsonify({'response': response})
+
+@app.route('/api/health/progress/adjustments', methods=['POST'])
+def progress_adjustments():
+    data = request.json
+    current_plan = data.get('current_plan', '')
+    progress_data = data.get('progress_data', '')
+    response = progress_tracking_agent.suggest_adjustments(current_plan, progress_data)
+    return jsonify({'response': response})
+
+@app.route('/api/health/progress/milestone-plan', methods=['POST'])
+def progress_milestone_plan():
+    data = request.json
+    goal = data.get('goal', '')
+    current_status = data.get('current_status', '')
+    timeframe = data.get('timeframe', '')
+    response = progress_tracking_agent.create_milestone_plan(goal, current_status, timeframe)
+    return jsonify({'response': response})
+
+@app.route('/api/health/progress/plateau', methods=['POST'])
+def progress_plateau():
+    data = request.json
+    plateau_data = data.get('plateau_data', '')
+    response = progress_tracking_agent.interpret_plateau(plateau_data)
+    return jsonify({'response': response})
+
+@app.route('/api/health/progress/celebrate', methods=['POST'])
+def progress_celebrate():
+    data = request.json
+    achievement = data.get('achievement', '')
+    response = progress_tracking_agent.celebrate_achievement(achievement)
+    return jsonify({'response': response})
+
+# Health Info Agent endpoints
+@app.route('/api/health/info/explain-concept', methods=['POST'])
+def health_info_explain_concept():
+    data = request.json
+    concept = data.get('concept', '')
+    response = health_info_agent.explain_concept(concept)
+    return jsonify({'response': response})
+
+@app.route('/api/health/info/answer-question', methods=['POST'])
+def health_info_answer_question():
+    data = request.json
+    question = data.get('question', '')
+    response = health_info_agent.answer_health_question(question)
+    return jsonify({'response': response})
+
+@app.route('/api/health/info/debunk-myth', methods=['POST'])
+def health_info_debunk_myth():
+    data = request.json
+    myth = data.get('myth', '')
+    response = health_info_agent.debunk_myth(myth)
+    return jsonify({'response': response})
+
+@app.route('/api/health/info/research', methods=['POST'])
+def health_info_research():
+    data = request.json
+    research_topic = data.get('research_topic', '')
+    response = health_info_agent.explain_research_finding(research_topic)
+    return jsonify({'response': response})
+
+@app.route('/api/health/info/educational-content', methods=['POST'])
+def health_info_educational_content():
+    data = request.json
+    topic = data.get('topic', '')
+    format_type = data.get('format_type', 'article')
+    response = health_info_agent.create_educational_content(topic, format_type)
+    return jsonify({'response': response})
+
+@app.route('/api/health/info/compare', methods=['POST'])
+def health_info_compare():
+    data = request.json
+    approach1 = data.get('approach1', '')
+    approach2 = data.get('approach2', '')
+    goal = data.get('goal', '')
+    response = health_info_agent.compare_approaches(approach1, approach2, goal)
+    return jsonify({'response': response})
+
+# if __name__ == '__main__':
+#     port = int(os.environ.get('PORT', 5001))
+#     app.run(debug=True, host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
 
