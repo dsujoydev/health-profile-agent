@@ -201,10 +201,85 @@ class HealthInfoAgentClass(BaseAgent):
         prompt = f"Compare the following approaches for achieving this health/fitness goal:\nGoal: {goal}\nApproach 1: {approach1}\nApproach 2: {approach2}"
         return self.get_response(prompt)
 
+class NutritionAgentClass(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            "NutritionCoach",
+            "a nutrition specialist who creates meal plans, provides dietary advice, and helps users make healthy food choices"
+        )
+    
+    def create_meal_plan(self, user_profile):
+        prompt = f"""
+        Create a 3-day meal plan for a user with the following profile:
+        
+        Age: {user_profile.get('age', 'Not provided')}
+        Weight: {user_profile.get('weight', 'Not provided')}
+        Height: {user_profile.get('height', 'Not provided')}
+        Activity Level: {user_profile.get('activity_level', 'Not provided')}
+        Dietary Restrictions: {user_profile.get('dietary_restrictions', 'None')}
+        Goals: {user_profile.get('goals', 'Balanced nutrition')}
+        
+        Include breakfast, lunch, dinner, and snacks for each day.
+        Provide approximate calorie counts for each meal.
+        Format the response in markdown.
+        """
+        return self.get_response(prompt)
+    
+    def suggest_food_alternatives(self, food, dietary_restriction=None):
+        prompt = f"Suggest healthy alternatives for {food}"
+        if dietary_restriction:
+            prompt += f" that are suitable for someone with {dietary_restriction} dietary restriction"
+        prompt += ". Include nutritional benefits of each alternative."
+        return self.get_response(prompt)
+    
+    def analyze_meal(self, meal_description):
+        prompt = f"""
+        Analyze the following meal in terms of nutritional value:
+        
+        {meal_description}
+        
+        Provide:
+        1. Approximate macronutrient breakdown (protein, carbs, fats)
+        2. Estimated calorie count
+        3. Nutritional strengths of this meal
+        4. Suggestions for improving nutritional balance
+        """
+        return self.get_response(prompt)
+    
+    def provide_nutrition_tips(self, goal):
+        prompt = f"""
+        Provide 5 evidence-based nutrition tips for someone with the following health/fitness goal:
+        
+        {goal}
+        
+        For each tip, include:
+        1. A brief explanation of why it works
+        2. A practical way to implement it
+        3. A common mistake to avoid
+        """
+        return self.get_response(prompt)
+    
+    def create_shopping_list(self, dietary_preferences="balanced", days=7):
+        prompt = f"""
+        Create a comprehensive grocery shopping list for {days} days of {dietary_preferences} eating.
+        
+        Include:
+        1. Fresh produce
+        2. Proteins
+        3. Grains and starches
+        4. Dairy or alternatives
+        5. Healthy fats
+        6. Seasonings and condiments
+        7. Snacks
+        
+        Organize by grocery store section and include approximate quantities.
+        """
+        return self.get_response(prompt)
+
 # Initialize all agents with the new classes
 health_profile_agent = HealthProfileAgentClass()
 workout_plan_agent = WorkoutPlanAgentClass()
-# nutrition_agent = NutritionAgent()
+nutrition_agent = NutritionAgentClass()
 progress_tracking_agent = ProgressTrackingAgentClass()
 health_info_agent = HealthInfoAgentClass()
 
@@ -271,35 +346,35 @@ def nutrition_meal_plan():
     response = nutrition_agent.create_meal_plan(user_profile)
     return jsonify({'response': response})
 
-# @app.route('/api/health/nutrition/food-alternatives', methods=['POST'])
-# def nutrition_food_alternatives():
-#     data = request.json
-#     food = data.get('food', '')
-#     dietary_restriction = data.get('dietary_restriction', None)
-#     response = nutrition_agent.suggest_food_alternatives(food, dietary_restriction)
-#     return jsonify({'response': response})
+@app.route('/api/health/nutrition/food-alternatives', methods=['POST'])
+def nutrition_food_alternatives():
+    data = request.json
+    food = data.get('food', '')
+    dietary_restriction = data.get('dietary_restriction', None)
+    response = nutrition_agent.suggest_food_alternatives(food, dietary_restriction)
+    return jsonify({'response': response})
 
-# @app.route('/api/health/nutrition/analyze-meal', methods=['POST'])
-# def nutrition_analyze_meal():
-#     data = request.json
-#     meal_description = data.get('meal_description', '')
-#     response = nutrition_agent.analyze_meal(meal_description)
-#     return jsonify({'response': response})
+@app.route('/api/health/nutrition/analyze-meal', methods=['POST'])
+def nutrition_analyze_meal():
+    data = request.json
+    meal_description = data.get('meal_description', '')
+    response = nutrition_agent.analyze_meal(meal_description)
+    return jsonify({'response': response})
 
-# @app.route('/api/health/nutrition/tips', methods=['POST'])
-# def nutrition_tips():
-#     data = request.json
-#     goal = data.get('goal', '')
-#     response = nutrition_agent.provide_nutrition_tips(goal)
-#     return jsonify({'response': response})
+@app.route('/api/health/nutrition/tips', methods=['POST'])
+def nutrition_tips():
+    data = request.json
+    goal = data.get('goal', '')
+    response = nutrition_agent.provide_nutrition_tips(goal)
+    return jsonify({'response': response})
 
-# @app.route('/api/health/nutrition/shopping-list', methods=['POST'])
-# def nutrition_shopping_list():
-#     data = request.json
-#     dietary_preferences = data.get('dietary_preferences', 'balanced')
-#     days = data.get('days', 7)
-#     response = nutrition_agent.create_shopping_list(dietary_preferences, days)
-#     return jsonify({'response': response})
+@app.route('/api/health/nutrition/shopping-list', methods=['POST'])
+def nutrition_shopping_list():
+    data = request.json
+    dietary_preferences = data.get('dietary_preferences', 'balanced')
+    days = data.get('days', 7)
+    response = nutrition_agent.create_shopping_list(dietary_preferences, days)
+    return jsonify({'response': response})
 
 # Progress Tracking Agent endpoints
 @app.route('/api/health/progress/analyze', methods=['POST'])
