@@ -1,5 +1,9 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+# from fastapi import FastAPI, HTTPException, Request, Response, Depends
+# from fastapi.security import HTTPAuthorizationCredentials, HTTPBeare
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from healthAgents import (
@@ -10,7 +14,16 @@ from healthAgents import (
     HealthInfoAgent
 )
 
+
 app = FastAPI(title="Health AI Agents API", version="1.0.0")
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize agents
 health_profile_agent = HealthProfileAgent()

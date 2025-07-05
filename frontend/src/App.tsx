@@ -1,8 +1,7 @@
-import { HealthProfileDashboard } from "./components/health-profile/HealthProfileDashboard";
-import "./App.css";
+import Home from "./modules/home/Home";
 
 function App() {
-  return <HealthProfileDashboard />;
+  return <Home />;
 }
 
 export default App;
