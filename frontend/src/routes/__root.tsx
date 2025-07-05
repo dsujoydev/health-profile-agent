@@ -1,5 +1,5 @@
-import * as React from "react";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
+import Navigation from "@/components/layout/navigation";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -7,8 +7,9 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <React.Fragment>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <Navigation />
       <Outlet />
-    </React.Fragment>
+    </div>
   );
 }
