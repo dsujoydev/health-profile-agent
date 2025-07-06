@@ -111,6 +111,20 @@ class CompareApproachesRequest(BaseModel):
     approach2: str
     goal: str
 
+# New Pydantic models for dynamic endpoints
+class DynamicGreetingRequest(BaseModel):
+    user_context: Dict[str, Any]
+
+class IntelligentAssessmentRequest(BaseModel):
+    user_data: Dict[str, Any]
+
+class AdaptiveProgramRequest(BaseModel):
+    user_context: Dict[str, Any]
+
+class ProgressGuidanceRequest(BaseModel):
+    user_id: str
+    query: str
+
 # Root endpoints
 @app.get("/")
 async def root():
@@ -120,11 +134,13 @@ async def root():
 async def health_check():
     return {"status": "healthy", "agents": ["health_profile", "workout", "nutrition", "progress", "health_info"]}
 
-# Health Profile Agent endpoints
+# Health Profile Agent endpoints (using dynamic methods)
 @app.post("/api/health/profile/greet")
 async def profile_greet(request: UserTypeRequest):
     try:
-        response = health_profile_agent.greet(request.user_type)
+        # Convert old format to new dynamic greeting format
+        user_context = {"user_type": request.user_type, "time_of_day": "day"}
+        response = health_profile_agent.dynamic_greeting(user_context)
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -132,7 +148,9 @@ async def profile_greet(request: UserTypeRequest):
 @app.post("/api/health/profile/suggest-program")
 async def profile_suggest_program(request: HealthInterestRequest):
     try:
-        response = health_profile_agent.suggest_program(request.health_interest)
+        # Convert to adaptive program suggestion
+        user_context = {"primary_goal": request.health_interest}
+        response = health_profile_agent.adaptive_program_suggestion(user_context)
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -140,8 +158,8 @@ async def profile_suggest_program(request: HealthInterestRequest):
 @app.post("/api/health/profile/assessment")
 async def profile_assessment(request: UserInfoRequest):
     try:
-        response = health_profile_agent.create_initial_assessment(request.user_info)
-        return {"response": response}
+        response = health_profile_agent.intelligent_assessment(request.user_info)
+        return {"response": response.get("assessment", "")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -320,6 +338,41 @@ async def health_info_compare(request: CompareApproachesRequest):
     try:
         response = health_info_agent.compare_health_approaches(
             request.approach1, request.approach2, request.goal
+        )
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/health/profile/dynamic-greeting")
+async def profile_dynamic_greeting(request: DynamicGreetingRequest):
+    try:
+        response = health_profile_agent.dynamic_greeting(request.user_context)
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/health/profile/intelligent-assessment")
+async def profile_intelligent_assessment(request: IntelligentAssessmentRequest):
+    try:
+        response = health_profile_agent.intelligent_assessment(request.user_data)
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/health/profile/adaptive-program")
+async def profile_adaptive_program(request: AdaptiveProgramRequest):
+    try:
+        response = health_profile_agent.adaptive_program_suggestion(request.user_context)
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/health/profile/progress-guidance")
+async def profile_progress_guidance(request: ProgressGuidanceRequest):
+    try:
+        response = health_profile_agent.progress_aware_guidance(
+            request.user_id, 
+            request.query
         )
         return {"response": response}
     except Exception as e:

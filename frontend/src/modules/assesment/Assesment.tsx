@@ -8,10 +8,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { User, Heart, Target, Activity, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import {
+  User,
+  Heart,
+  Target,
+  Activity,
+  CheckCircle,
+  ArrowRight,
+  ArrowLeft,
+  Bot,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
+import healthAgentService, { type AssessmentData } from "@/services/healthAgentService";
 
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiAssessment, setAiAssessment] = useState<string>("");
+  const [showResults, setShowResults] = useState(false);
   const [formData, setFormData] = useState({
     // Personal Info
     name: "",
@@ -86,10 +101,58 @@ const Assessment = () => {
     }
   };
 
-  const handleSubmit = () => {
-    console.log("Assessment completed:", formData);
-    // Here you would typically send the data to your API
-    alert("Assessment completed! Redirecting to your personalized dashboard...");
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      // Generate a unique user ID
+      const userId = `user_${Date.now()}`;
+
+      // Prepare assessment data for the AI
+      const assessmentData: AssessmentData = {
+        user_id: userId,
+        assessment_date: new Date().toISOString(),
+        age: parseInt(formData.age) || undefined,
+        height: parseInt(formData.height) || undefined,
+        weight: parseInt(formData.weight) || undefined,
+        gender: formData.gender || undefined,
+        activity_level: formData.activityLevel || undefined,
+        medical_conditions: formData.medicalConditions.length > 0 ? formData.medicalConditions : undefined,
+        medications: formData.medications || undefined,
+        injuries: formData.injuries || undefined,
+        goals: formData.primaryGoal ? [formData.primaryGoal] : undefined,
+        preferred_activities: formData.workoutTypes.length > 0 ? formData.workoutTypes : undefined,
+        dietary_preferences: formData.dietaryRestrictions.length > 0 ? formData.dietaryRestrictions : undefined,
+        time_availability: formData.timeCommitment || undefined,
+        equipment: formData.equipment.length > 0 ? formData.equipment : undefined,
+        // Additional context
+        sleep_quality: "average", // Could be added to form later
+        stress_level: "moderate", // Could be added to form later
+        energy_levels: "good", // Could be added to form later
+        work_type: "office", // Could be added to form later
+      };
+
+      // Get AI assessment
+      const result = await healthAgentService.getIntelligentAssessment(assessmentData);
+
+      // Store user data in localStorage for future personalization
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("userName", formData.name);
+      localStorage.setItem("userGoals", JSON.stringify([formData.primaryGoal]));
+      localStorage.setItem("fitnessLevel", formData.activityLevel);
+      localStorage.setItem("primaryGoal", formData.primaryGoal);
+      localStorage.setItem("availableTime", formData.timeCommitment);
+      localStorage.setItem("equipment", JSON.stringify(formData.equipment));
+      localStorage.setItem("healthStatus", "assessed");
+      localStorage.setItem("motivationLevel", "high");
+
+      setAiAssessment(result.assessment);
+      setShowResults(true);
+    } catch (error) {
+      console.error("Error submitting assessment:", error);
+      alert("There was an error processing your assessment. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -392,6 +455,68 @@ const Assessment = () => {
     }
   };
 
+  const renderResults = () => {
+    if (!showResults || !aiAssessment) return null;
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Bot className="w-12 h-12 text-purple-600 mr-3" />
+            <Sparkles className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900">Your AI-Powered Health Assessment</h2>
+          <p className="text-gray-600 mt-2">Based on your responses, here's your personalized wellness plan</p>
+        </div>
+
+        <Card className="p-8 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+          <div className="prose prose-lg max-w-none">
+            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">{aiAssessment}</div>
+          </div>
+        </Card>
+
+        <div className="text-center">
+          <Button
+            onClick={() => {
+              setShowResults(false);
+              setCurrentStep(1);
+              setFormData({
+                name: "",
+                age: "",
+                gender: "",
+                height: "",
+                weight: "",
+                activityLevel: "",
+                medicalConditions: [],
+                medications: "",
+                injuries: "",
+                primaryGoal: "",
+                timeCommitment: "",
+                equipment: [],
+                workoutTypes: [],
+                dietaryRestrictions: [],
+                additionalNotes: "",
+              });
+            }}
+            variant="outline"
+            className="mr-4"
+          >
+            Take Assessment Again
+          </Button>
+          <Button className="bg-wellness-gradient">Explore Your Personalized Workouts</Button>
+        </div>
+      </div>
+    );
+  };
+
+  if (showResults) {
+    return (
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">{renderResults()}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
@@ -418,9 +543,18 @@ const Assessment = () => {
           </Button>
 
           {currentStep === totalSteps ? (
-            <Button onClick={handleSubmit} className="bg-wellness-gradient flex items-center">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Complete Assessment
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-wellness-gradient flex items-center">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating AI Assessment...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Complete Assessment
+                </>
+              )}
             </Button>
           ) : (
             <Button onClick={nextStep} className="bg-wellness-gradient flex items-center">
