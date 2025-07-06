@@ -39,6 +39,10 @@ const Assessment = () => {
     medicalConditions: [] as string[],
     medications: "",
     injuries: "",
+    sleepQuality: "",
+    stressLevel: "",
+    energyLevels: "",
+    workType: "",
     // Goals
     primaryGoal: "",
     timeCommitment: "",
@@ -125,10 +129,10 @@ const Assessment = () => {
         time_availability: formData.timeCommitment || undefined,
         equipment: formData.equipment.length > 0 ? formData.equipment : undefined,
         // Additional context
-        sleep_quality: "average", // Could be added to form later
-        stress_level: "moderate", // Could be added to form later
-        energy_levels: "good", // Could be added to form later
-        work_type: "office", // Could be added to form later
+        sleep_quality: formData.sleepQuality || undefined,
+        stress_level: formData.stressLevel || undefined,
+        energy_levels: formData.energyLevels || undefined,
+        work_type: formData.workType || undefined,
       };
 
       // Get AI assessment
@@ -303,6 +307,118 @@ const Assessment = () => {
                   onChange={(e) => handleInputChange("injuries", e.target.value)}
                   placeholder="Describe any injuries or physical limitations"
                 />
+              </div>
+
+              <div>
+                <Label>Sleep Quality</Label>
+                <RadioGroup
+                  value={formData.sleepQuality}
+                  onValueChange={(value) => handleInputChange("sleepQuality", value)}
+                  className="mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="poor" id="poor-sleep" />
+                    <Label htmlFor="poor-sleep">Poor (less than 5 hours)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="average" id="average-sleep" />
+                    <Label htmlFor="average-sleep">Average (5-7 hours)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="good" id="good-sleep" />
+                    <Label htmlFor="good-sleep">Good (7-9 hours)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="excellent" id="excellent-sleep" />
+                    <Label htmlFor="excellent-sleep">Excellent (9+ hours)</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label>Stress Level</Label>
+                <RadioGroup
+                  value={formData.stressLevel}
+                  onValueChange={(value) => handleInputChange("stressLevel", value)}
+                  className="mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="low" id="low-stress" />
+                    <Label htmlFor="low-stress">Low</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="moderate" id="moderate-stress" />
+                    <Label htmlFor="moderate-stress">Moderate</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="high" id="high-stress" />
+                    <Label htmlFor="high-stress">High</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="very-high" id="very-high-stress" />
+                    <Label htmlFor="very-high-stress">Very High</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label>Energy Levels</Label>
+                <RadioGroup
+                  value={formData.energyLevels}
+                  onValueChange={(value) => handleInputChange("energyLevels", value)}
+                  className="mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="low" id="low-energy" />
+                    <Label htmlFor="low-energy">Low</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="moderate" id="moderate-energy" />
+                    <Label htmlFor="moderate-energy">Moderate</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="good" id="good-energy" />
+                    <Label htmlFor="good-energy">Good</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="high" id="high-energy" />
+                    <Label htmlFor="high-energy">High</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label>Work Type</Label>
+                <RadioGroup
+                  value={formData.workType}
+                  onValueChange={(value) => handleInputChange("workType", value)}
+                  className="mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="office" id="office-work" />
+                    <Label htmlFor="office-work">Office/Desk Work</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="physical" id="physical-work" />
+                    <Label htmlFor="physical-work">Physical/Manual Labor</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mixed" id="mixed-work" />
+                    <Label htmlFor="mixed-work">Mixed (Office + Physical)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="remote" id="remote-work" />
+                    <Label htmlFor="remote-work">Remote/Work from Home</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="student" id="student-work" />
+                    <Label htmlFor="student-work">Student</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="retired" id="retired-work" />
+                    <Label htmlFor="retired-work">Retired</Label>
+                  </div>
+                </RadioGroup>
               </div>
             </div>
           </div>
@@ -490,6 +606,10 @@ const Assessment = () => {
                 medicalConditions: [],
                 medications: "",
                 injuries: "",
+                sleepQuality: "",
+                stressLevel: "",
+                energyLevels: "",
+                workType: "",
                 primaryGoal: "",
                 timeCommitment: "",
                 equipment: [],

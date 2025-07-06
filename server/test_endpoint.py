@@ -44,7 +44,7 @@ def test_intelligent_assessment():
         print(f"Response keys: {result.keys() if isinstance(result, dict) else 'Not a dict'}")
         
         if isinstance(result, dict) and 'assessment' in result:
-            assessment_preview = result['assessment'][:200] + "..." if len(result['assessment']) > 200 else result['assessment']
+            assessment_preview = result['assessment'][:500] + "..." if len(result['assessment']) > 500 else result['assessment']
             print(f"Assessment preview: {assessment_preview}")
         
         print("\n=== Testing dynamic_greeting ===")
