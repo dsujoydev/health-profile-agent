@@ -22,11 +22,117 @@ import {
 } from "lucide-react";
 import healthAgentService, { type AssessmentData } from "@/services/healthAgentService";
 
+// Typewriter effect hook
+const useTypewriter = (text: string, speed = 20) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
+  const startTyping = (textToType: string) => {
+    setIsTyping(true);
+    setDisplayedText("");
+    let index = 0;
+
+    const timer = setInterval(() => {
+      setDisplayedText((prev) => prev + textToType[index]);
+      index++;
+
+      if (index >= textToType.length) {
+        clearInterval(timer);
+        setIsTyping(false);
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  };
+
+  return { displayedText, isTyping, startTyping };
+};
+
+// Simple markdown renderer
+const renderMarkdown = (text: string) => {
+  if (!text) return null;
+
+  const lines = text.split("\n");
+
+  return lines.map((line, index) => {
+    // Handle headers (###, ##, #)
+    if (line.startsWith("### ")) {
+      return (
+        <h3 key={index} className="text-xl font-bold text-gray-900 mt-6 mb-3 first:mt-0">
+          {line.replace("### ", "")}
+        </h3>
+      );
+    }
+    if (line.startsWith("## ")) {
+      return (
+        <h2 key={index} className="text-2xl font-bold text-gray-900 mt-8 mb-4 first:mt-0">
+          {line.replace("## ", "")}
+        </h2>
+      );
+    }
+    if (line.startsWith("# ")) {
+      return (
+        <h1 key={index} className="text-3xl font-bold text-gray-900 mt-8 mb-4 first:mt-0">
+          {line.replace("# ", "")}
+        </h1>
+      );
+    }
+
+    // Handle bullet points
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      return (
+        <li key={index} className="ml-4 mb-2 text-gray-700 leading-relaxed">
+          {processInlineFormatting(line.replace(/^[-*] /, ""))}
+        </li>
+      );
+    }
+
+    // Handle numbered lists
+    if (/^\d+\. /.test(line)) {
+      return (
+        <li key={index} className="ml-4 mb-2 text-gray-700 leading-relaxed list-decimal">
+          {processInlineFormatting(line.replace(/^\d+\. /, ""))}
+        </li>
+      );
+    }
+
+    // Handle empty lines
+    if (line.trim() === "") {
+      return <br key={index} />;
+    }
+
+    // Regular paragraphs
+    return (
+      <p key={index} className="mb-3 text-gray-700 leading-relaxed">
+        {processInlineFormatting(line)}
+      </p>
+    );
+  });
+};
+
+// Process inline formatting (bold, italic, etc.)
+const processInlineFormatting = (text: string) => {
+  // Handle bold text (**text**)
+  let processed = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
+
+  // Handle italic text (*text*)
+  processed = processed.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+
+  // Handle inline code (`code`)
+  processed = processed.replace(/`(.*?)`/g, '<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">$1</code>');
+
+  return <span dangerouslySetInnerHTML={{ __html: processed }} />;
+};
+
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiAssessment, setAiAssessment] = useState<string>("");
   const [showResults, setShowResults] = useState(false);
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+
+  // Typewriter effect for assessment results
+  const { displayedText: typedAssessment, isTyping, startTyping } = useTypewriter(aiAssessment, 15);
   const [formData, setFormData] = useState({
     // Personal Info
     name: "",
@@ -107,6 +213,7 @@ const Assessment = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setIsLoadingResults(true);
     try {
       // Generate a unique user ID
       const userId = `user_${Date.now()}`;
@@ -151,9 +258,16 @@ const Assessment = () => {
 
       setAiAssessment(result.assessment);
       setShowResults(true);
+      setIsLoadingResults(false);
+
+      // Start typewriter effect after a brief delay
+      setTimeout(() => {
+        startTyping(result.assessment);
+      }, 500);
     } catch (error) {
       console.error("Error submitting assessment:", error);
       alert("There was an error processing your assessment. Please try again.");
+      setIsLoadingResults(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -572,7 +686,7 @@ const Assessment = () => {
   };
 
   const renderResults = () => {
-    if (!showResults || !aiAssessment) return null;
+    if (!showResults) return null;
 
     return (
       <div className="space-y-6">
@@ -586,45 +700,66 @@ const Assessment = () => {
         </div>
 
         <Card className="p-8 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
-          <div className="prose prose-lg max-w-none">
-            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">{aiAssessment}</div>
-          </div>
+          {isLoadingResults ? (
+            <div className="text-center py-12">
+              <div className="flex items-center justify-center mb-4">
+                <Loader2 className="w-8 h-8 text-purple-600 animate-spin mr-3" />
+                <span className="text-lg font-semibold text-purple-600">AI is analyzing your health profile...</span>
+              </div>
+              <div className="space-y-3 max-w-md mx-auto">
+                <div className="animate-pulse">
+                  <div className="bg-purple-200 rounded h-4 mb-3" />
+                  <div className="bg-purple-200 rounded h-4 w-4/5 mb-3" />
+                  <div className="bg-purple-200 rounded h-4 w-3/5" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-lg max-w-none">
+              <div className="text-gray-800 leading-relaxed">
+                {renderMarkdown(typedAssessment || aiAssessment)}
+                {isTyping && <span className="animate-pulse text-purple-600">|</span>}
+              </div>
+            </div>
+          )}
         </Card>
 
-        <div className="text-center">
-          <Button
-            onClick={() => {
-              setShowResults(false);
-              setCurrentStep(1);
-              setFormData({
-                name: "",
-                age: "",
-                gender: "",
-                height: "",
-                weight: "",
-                activityLevel: "",
-                medicalConditions: [],
-                medications: "",
-                injuries: "",
-                sleepQuality: "",
-                stressLevel: "",
-                energyLevels: "",
-                workType: "",
-                primaryGoal: "",
-                timeCommitment: "",
-                equipment: [],
-                workoutTypes: [],
-                dietaryRestrictions: [],
-                additionalNotes: "",
-              });
-            }}
-            variant="outline"
-            className="mr-4"
-          >
-            Take Assessment Again
-          </Button>
-          <Button className="bg-wellness-gradient">Explore Your Personalized Workouts</Button>
-        </div>
+        {!isLoadingResults && (
+          <div className="text-center animate-fade-in">
+            <Button
+              onClick={() => {
+                setShowResults(false);
+                setCurrentStep(1);
+                setFormData({
+                  name: "",
+                  age: "",
+                  gender: "",
+                  height: "",
+                  weight: "",
+                  activityLevel: "",
+                  medicalConditions: [],
+                  medications: "",
+                  injuries: "",
+                  sleepQuality: "",
+                  stressLevel: "",
+                  energyLevels: "",
+                  workType: "",
+                  primaryGoal: "",
+                  timeCommitment: "",
+                  equipment: [],
+                  workoutTypes: [],
+                  dietaryRestrictions: [],
+                  additionalNotes: "",
+                });
+              }}
+              variant="outline"
+              className="mr-4"
+            >
+              Take Assessment Again
+            </Button>
+            <Button className="bg-wellness-gradient">Explore Your Personalized Workouts</Button>
+          </div>
+        )}
       </div>
     );
   };
