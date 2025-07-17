@@ -1,58 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, ArrowRight, Bot, Loader2 } from "lucide-react";
+import { Zap, ArrowRight, Bot } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import healthAgentService from "@/services/healthAgentService";
-
-// Skeleton loader component
-const SkeletonLoader = ({ lines = 1, className = "" }: { lines?: number; className?: string }) => (
-  <div className={className}>
-    <div className="flex items-center justify-center mb-3">
-      <Loader2 className="w-6 h-6 text-blue-600 mr-2 animate-spin" />
-      <span className="text-sm font-semibold text-blue-600">AI is thinking...</span>
-    </div>
-    <div className="animate-pulse">
-      {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className={`bg-gray-200 rounded h-4 ${i > 0 ? "mt-2" : ""}`} />
-      ))}
-    </div>
-  </div>
-);
-
-// Typewriter effect hook
-const useTypewriter = (text: string, speed = 30) => {
-  const [displayedText, setDisplayedText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-
-  useEffect(() => {
-    if (!text) return;
-
-    setIsTyping(true);
-    setDisplayedText("");
-    let index = 0;
-
-    const timer = setInterval(() => {
-      setDisplayedText((prev) => prev + text[index]);
-      index++;
-
-      if (index >= text.length) {
-        clearInterval(timer);
-        setIsTyping(false);
-      }
-    }, speed);
-
-    return () => clearInterval(timer);
-  }, [text, speed]);
-
-  return { displayedText, isTyping };
-};
+import { useTypewriter } from "@/hooks/useTypewriter";
+import { SkeletonLoader } from "@/components/custom-ui/skeleton";
 
 const Hero = () => {
   const [dynamicGreeting, setDynamicGreeting] = useState("");
   const [isLoadingGreeting, setIsLoadingGreeting] = useState(false);
 
-  // Typewriter effect for greeting
   const { displayedText: typedGreeting, isTyping } = useTypewriter(dynamicGreeting, 25);
 
   // Get user context from localStorage/state

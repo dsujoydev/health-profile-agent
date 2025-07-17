@@ -1,5 +1,19 @@
-export { default as Hero } from "./Hero";
-export { default as Insight } from "./Insight";
-export { default as Features } from "./features";
-export { default as Testimonials } from "./testtimonials";
-export { default as CTA } from "./cta";
+import CTA from "./cta";
+import Features from "./features";
+import Hero from "./hero";
+import Insight from "./insight";
+import Testimonials from "./testimonials";
+
+const Home = () => {
+  return (
+    <div className="overflow-hidden">
+      <Hero />
+      <Insight />
+      <Features />
+      <Testimonials />
+      <CTA />
+    </div>
+  );
+};
+
+export default Home;

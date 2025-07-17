@@ -1,4 +1,4 @@
-import Home from "@/modules/home/Home";
+import Home from "@/modules/home";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
