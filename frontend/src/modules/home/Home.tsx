@@ -2,14 +2,65 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Target, Zap, TrendingUp, Star, ArrowRight, Bot, Sparkles } from "lucide-react";
+import { Heart, Target, Zap, TrendingUp, Star, ArrowRight, Bot, Sparkles, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import healthAgentService from "@/services/healthAgentService";
+
+// Skeleton loader component
+const SkeletonLoader = ({ lines = 1, className = "" }: { lines?: number; className?: string }) => (
+  <div className={className}>
+    <div className="flex items-center justify-center mb-3">
+      <Loader2 className="w-6 h-6 text-blue-600 mr-2 animate-spin" />
+      <span className="text-sm font-semibold text-blue-600">AI is thinking...</span>
+    </div>
+    <div className="animate-pulse">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className={`bg-gray-200 rounded h-4 ${i > 0 ? "mt-2" : ""}`} />
+      ))}
+    </div>
+  </div>
+);
+
+// Typewriter effect hook
+const useTypewriter = (text: string, speed = 30) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    if (!text) return;
+
+    setIsTyping(true);
+    setDisplayedText("");
+    let index = 0;
+
+    const timer = setInterval(() => {
+      setDisplayedText((prev) => prev + text[index]);
+      index++;
+
+      if (index >= text.length) {
+        clearInterval(timer);
+        setIsTyping(false);
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return { displayedText, isTyping };
+};
 
 const Home = () => {
   const [dynamicGreeting, setDynamicGreeting] = useState("");
   const [personalizedTip, setPersonalizedTip] = useState("");
   const [adaptiveRecommendations, setAdaptiveRecommendations] = useState("");
+
+  // Loading states
+  const [isLoadingGreeting, setIsLoadingGreeting] = useState(false);
+  const [isLoadingTip, setIsLoadingTip] = useState(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+
+  // Typewriter effect for greeting
+  const { displayedText: typedGreeting, isTyping } = useTypewriter(dynamicGreeting, 25);
 
   // Get user context from localStorage/state
   const getUserContext = () => {
@@ -33,31 +84,49 @@ const Home = () => {
 
   useEffect(() => {
     const loadDynamicContent = async () => {
-      try {
-        const context = getUserContext();
+      const context = getUserContext();
 
-        // Get dynamic greeting
+      // Load greeting with loading state
+      setIsLoadingGreeting(true);
+      try {
         const greeting = await healthAgentService.getDynamicGreeting(context);
         setDynamicGreeting(greeting);
+      } catch (error) {
+        console.error("Error loading greeting:", error);
+      } finally {
+        setIsLoadingGreeting(false);
+      }
 
-        // Get personalized tip
+      // Load personalized tip with loading state
+      setIsLoadingTip(true);
+      try {
         const tip = await healthAgentService.getProgressAwareGuidance(
           context.user_id || "anonymous",
           "Give me a personalized health tip for today based on my profile"
         );
         setPersonalizedTip(tip);
+      } catch (error) {
+        console.error("Error loading tip:", error);
+      } finally {
+        setIsLoadingTip(false);
+      }
 
-        // Get adaptive recommendations
+      // Load adaptive recommendations with loading state
+      setIsLoadingRecommendations(true);
+      try {
         const recommendations = await healthAgentService.getAdaptiveProgramSuggestion(context);
         setAdaptiveRecommendations(recommendations);
-
-        // Update visit count
-        const newVisitCount = (context.visit_count || 0) + 1;
-        localStorage.setItem("visitCount", newVisitCount.toString());
       } catch (error) {
-        console.error("Error loading dynamic content:", error);
+        console.error("Error loading recommendations:", error);
+      } finally {
+        setIsLoadingRecommendations(false);
       }
+
+      // Update visit count
+      const newVisitCount = (context.visit_count || 0) + 1;
+      localStorage.setItem("visitCount", newVisitCount.toString());
     };
+
     loadDynamicContent();
   }, []);
 
@@ -124,15 +193,6 @@ const Home = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Dynamic Greeting */}
-            {dynamicGreeting && (
-              <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl border border-blue-100 shadow-sm">
-                <div className="flex items-center justify-center mb-3">
-                  <Bot className="w-6 h-6 text-blue-600 mr-2" />
-                  <span className="text-sm font-semibold text-blue-600">AI Personal Greeting</span>
-                </div>
-                <p className="text-lg text-gray-700 leading-relaxed max-w-2xl mx-auto">{dynamicGreeting}</p>
-              </div>
-            )}
 
             <Badge variant="secondary" className="mb-4 px-4 py-2">
               <Zap className="w-4 h-4 mr-2" />
@@ -160,6 +220,26 @@ const Home = () => {
                 <Link to="/workouts">Explore Workouts</Link>
               </Button>
             </div>
+
+            {isLoadingGreeting ? (
+              <SkeletonLoader
+                lines={3}
+                className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl border border-blue-100 shadow-sm"
+              />
+            ) : (
+              dynamicGreeting && (
+                <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl border border-blue-100 shadow-sm animate-fade-in">
+                  <div className="flex items-center justify-center mb-3">
+                    <Bot className="w-6 h-6 text-blue-600 mr-2" />
+                    <span className="text-sm font-semibold text-blue-600">AI Personal Greeting</span>
+                  </div>
+                  <p className="text-lg text-gray-700 leading-relaxed max-w-2xl mx-auto">
+                    {typedGreeting}
+                    {isTyping && <span className="animate-pulse">|</span>}
+                  </p>
+                </div>
+              )
+            )}
           </div>
         </div>
       </section>
@@ -180,42 +260,77 @@ const Home = () => {
 
             <div className="grid md:grid-cols-2 gap-8">
               {/* Personalized Tip */}
-              {personalizedTip && (
+              {isLoadingTip ? (
                 <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
                   <div className="flex items-start space-x-4">
                     <div className="p-3 bg-purple-100 rounded-full">
-                      <Heart className="w-6 h-6 text-purple-600" />
+                      <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Your Daily Health Tip</h3>
-                      <p className="text-gray-700 leading-relaxed">{personalizedTip}</p>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {/* Adaptive Recommendations */}
-              {adaptiveRecommendations && (
-                <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
-                  <div className="flex items-start space-x-4">
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <Target className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended Programs</h3>
-                      <div className="text-gray-700 leading-relaxed">
-                        {adaptiveRecommendations
-                          .split("\n")
-                          .slice(0, 3)
-                          .map((line, index) => (
-                            <p key={index} className="mb-2">
-                              {line}
-                            </p>
-                          ))}
+                      <div className="animate-pulse">
+                        <div className="bg-gray-200 rounded h-4 mb-2" />
+                        <div className="bg-gray-200 rounded h-4 w-3/4" />
                       </div>
                     </div>
                   </div>
                 </Card>
+              ) : (
+                personalizedTip && (
+                  <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-purple-500 animate-fade-in">
+                    <div className="flex items-start space-x-4">
+                      <div className="p-3 bg-purple-100 rounded-full">
+                        <Heart className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Your Daily Health Tip</h3>
+                        <p className="text-gray-700 leading-relaxed">{personalizedTip}</p>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              )}
+
+              {/* Adaptive Recommendations */}
+              {isLoadingRecommendations ? (
+                <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 bg-green-100 rounded-full">
+                      <Loader2 className="w-6 h-6 text-green-600 animate-spin" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended Programs</h3>
+                      <div className="animate-pulse space-y-2">
+                        <div className="bg-gray-200 rounded h-4" />
+                        <div className="bg-gray-200 rounded h-4 w-5/6" />
+                        <div className="bg-gray-200 rounded h-4 w-4/6" />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                adaptiveRecommendations && (
+                  <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-green-500 animate-fade-in">
+                    <div className="flex items-start space-x-4">
+                      <div className="p-3 bg-green-100 rounded-full">
+                        <Target className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Recommended Programs</h3>
+                        <div className="text-gray-700 leading-relaxed">
+                          {adaptiveRecommendations
+                            .split("\n")
+                            .slice(0, 3)
+                            .map((line, index) => (
+                              <p key={index} className="mb-2">
+                                {line}
+                              </p>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )
               )}
             </div>
           </div>
