@@ -49,7 +49,7 @@ interface AssessmentResponse {
 }
 
 class HealthAgentService {
-  private baseUrl = "http://0.0.0.0:8000";
+  private baseUrl = import.meta.env.VITE_API_URL;
 
   async getDynamicGreeting(context: UserContext): Promise<string> {
     try {
