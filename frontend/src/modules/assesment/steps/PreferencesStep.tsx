@@ -52,7 +52,7 @@ export const PreferencesStep = ({ formData, onInputChange, onArrayChange }: Asse
               <div key={item.value} className="flex items-center space-x-2">
                 <Checkbox
                   id={`diet-${item.value}`}
-                  checked={formData.dietaryRestrictions.includes(item.value)}
+                  checked={formData?.dietaryRestrictions?.includes(item.value) || false}
                   onCheckedChange={(checked) =>
                     handleCheckboxChange("dietaryRestrictions", item.value, checked as boolean)
                   }

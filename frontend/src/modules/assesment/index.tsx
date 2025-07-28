@@ -136,7 +136,9 @@ const Assessment = () => {
   const nextStep = async () => {
     // Trigger validation for current step fields
     const fields = getStepFields(currentStep);
+    console.log(fields);
     const isValid = await trigger(fields as (keyof AssessmentFormData)[]);
+    console.log(isValid);
 
     if (isValid && currentStep < TOTAL_STEPS) {
       setCurrentStep((prev) => prev + 1);
@@ -156,7 +158,8 @@ const Assessment = () => {
       case 1:
         return ["name", "age", "gender", "height", "weight"];
       case 2:
-        return ["activityLevel", "sleepQuality", "stressLevel", "energyLevels", "workType"];
+        // return ["activityLevel", "sleepQuality", "stressLevel", "energyLevels", "workType"];
+        return [];
       case 3:
         return ["primaryGoal", "timeCommitment"];
       case 4:

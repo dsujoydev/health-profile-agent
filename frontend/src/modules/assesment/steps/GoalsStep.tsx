@@ -69,7 +69,7 @@ export const GoalsStep = ({ formData, onInputChange, onArrayChange }: Assessment
               <div key={item.value} className="flex items-center space-x-2">
                 <Checkbox
                   id={`equipment-${item.value}`}
-                  checked={formData.equipment.includes(item.value)}
+                  checked={formData?.equipment?.includes(item.value) || false}
                   onCheckedChange={(checked) => handleCheckboxChange("equipment", item.value, checked as boolean)}
                 />
                 <Label htmlFor={`equipment-${item.value}`} className="font-normal">
