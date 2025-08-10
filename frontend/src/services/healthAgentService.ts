@@ -93,6 +93,9 @@ class HealthAgentService {
 
       const data = await response.json();
       console.log("Response data:", data);
+      console.log("Response data type:", typeof data);
+      console.log("Assessment field type:", typeof data.assessment);
+      console.log("Assessment content:", data.assessment);
       return data;
     } catch (error) {
       console.error("Error fetching intelligent assessment:", error);

@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { PersonalInfoStep, HealthInfoStep, GoalsStep, PreferencesStep } from "./steps";
 import { AssessmentResults } from "./AssessmentResults";
 import { TOTAL_STEPS } from "./helpers/assessment.constants";
-import { StepProgress } from "./components/StepProgress";
+import { StepProgress } from "../../components/custom-ui/step-progress";
 
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);

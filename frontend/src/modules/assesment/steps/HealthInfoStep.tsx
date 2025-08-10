@@ -3,9 +3,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AssessmentStepProps } from "../helpers/assesment.schemas";
+import { AssessmentStepProps, ArrayField } from "../helpers/assesment.schemas";
 import { ACTIVITY_LEVELS } from "../helpers/assessment.constants";
-import { FieldWrapper } from "../components/ValidationIndicator";
+import { FieldWrapper } from "../../../components/custom-ui/validation-indicator";
 
 const HEALTH_ISSUES = [
   { id: "diabetes", label: "Diabetes" },
@@ -21,7 +21,7 @@ const HEALTH_ISSUES = [
 export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: AssessmentStepProps) => {
   const handleCheckboxChange = (field: string, value: string, checked: boolean) => {
     if (onArrayChange) {
-      onArrayChange(field, value, checked);
+      onArrayChange(field as ArrayField, value, checked);
     }
   };
 
