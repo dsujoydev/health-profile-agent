@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import {
   AssessmentFormData,
@@ -20,6 +19,7 @@ import { toast } from "sonner";
 import { PersonalInfoStep, HealthInfoStep, GoalsStep, PreferencesStep } from "./steps";
 import { AssessmentResults } from "./AssessmentResults";
 import { TOTAL_STEPS } from "./helpers/assessment.constants";
+import { StepProgress } from "./components/StepProgress";
 
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -54,7 +54,53 @@ const Assessment = () => {
   });
 
   const { handleSubmit, trigger, watch, setValue } = methods;
-  const progress = (currentStep / TOTAL_STEPS) * 100;
+
+  // Define getStepFields function first
+  const getStepFields = (step: number): (keyof AssessmentFormData)[] => {
+    switch (step) {
+      case 1:
+        return ["name", "age", "gender", "height", "weight"];
+      case 2:
+        return ["activityLevel", "sleepQuality", "stressLevel", "energyLevels", "workType"];
+      case 3:
+        return ["primaryGoal", "timeCommitment"];
+      case 4:
+        return ["workoutTypes"];
+      default:
+        return [];
+    }
+  };
+
+  // Calculate step validation status
+  const calculateStepValidation = () => {
+    const formData = watch();
+    const stepValidation: { [key: number]: { isValid: boolean; completedFields: number; totalFields: number } } = {};
+
+    for (let step = 1; step <= TOTAL_STEPS; step++) {
+      const fields = getStepFields(step);
+      const totalFields = fields.length;
+      let completedFields = 0;
+
+      fields.forEach((field) => {
+        const value = formData[field];
+        if (Array.isArray(value)) {
+          if (value.length > 0) completedFields++;
+        } else {
+          if (value && value.toString().trim() !== "") completedFields++;
+        }
+      });
+
+      stepValidation[step] = {
+        isValid: completedFields === totalFields && totalFields > 0,
+        completedFields,
+        totalFields,
+      };
+    }
+
+    return stepValidation;
+  };
+
+  const stepValidation = calculateStepValidation();
 
   // React Query mutation for submitting assessment
   const submitAssessmentMutation = useMutation({
@@ -134,13 +180,28 @@ const Assessment = () => {
   const nextStep = async () => {
     // Trigger validation for current step fields
     const fields = getStepFields(currentStep);
-    console.log(fields);
+    console.log("Validating fields for step", currentStep, ":", fields);
+
     const isValid = await trigger(fields as (keyof AssessmentFormData)[]);
-    console.log(isValid);
+    console.log("Validation result:", isValid);
+
+    // Get form errors for better debugging
+    const errors = methods.formState.errors;
+    console.log("Form errors:", errors);
 
     if (isValid && currentStep < TOTAL_STEPS) {
       setCurrentStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Show validation errors to user
+      const errorFields = Object.keys(errors);
+      if (errorFields.length > 0) {
+        const errorMessages = errorFields.map((field) => {
+          const error = errors[field as keyof typeof errors];
+          return error?.message || `${field} is required`;
+        });
+        toast.error(`Please fill in all required fields: ${errorMessages.join(", ")}`);
+      }
     }
   };
 
@@ -148,21 +209,6 @@ const Assessment = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const getStepFields = (step: number): (keyof AssessmentFormData)[] => {
-    switch (step) {
-      case 1:
-        return ["name", "age", "gender", "height", "weight"];
-      case 2:
-        return ["activityLevel", "sleepQuality", "stressLevel", "energyLevels", "workType"];
-      case 3:
-        return ["primaryGoal", "timeCommitment"];
-      case 4:
-        return ["workoutTypes"];
-      default:
-        return [];
     }
   };
 
@@ -237,15 +283,7 @@ const Assessment = () => {
           <p className="text-gray-600">Complete the assessment to get personalized recommendations</p>
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Step {currentStep} of {TOTAL_STEPS}
-            </span>
-            <span className="text-sm font-medium text-primary">{Math.round(progress)}% Complete</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
+        <StepProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} stepValidation={stepValidation} />
 
         <Card className="mb-6">
           <CardContent className="p-6">{renderStepContent()}</CardContent>

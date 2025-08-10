@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AssessmentStepProps } from "../helpers/assesment.schemas";
 import { ACTIVITY_LEVELS } from "../helpers/assessment.constants";
+import { FieldWrapper } from "../components/ValidationIndicator";
 
 const HEALTH_ISSUES = [
   { id: "diabetes", label: "Diabetes" },
@@ -33,11 +34,7 @@ export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: Asses
       </div>
 
       <div className="space-y-6">
-        <div>
-          <Label className="flex items-center gap-2 mb-2">
-            <Activity className="w-5 h-5" />
-            Activity Level
-          </Label>
+        <FieldWrapper label="Activity Level" isValid={!!formData.activityLevel} icon={<Activity className="w-5 h-5" />}>
           <Select value={formData.activityLevel} onValueChange={(value) => onInputChange("activityLevel", value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select your activity level" />
@@ -50,7 +47,7 @@ export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: Asses
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </FieldWrapper>
 
         <div>
           <Label className="flex items-center gap-2 mb-2">
@@ -100,11 +97,7 @@ export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: Asses
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label className="flex items-center gap-2 mb-2">
-              <Moon className="w-5 h-5" />
-              Sleep Quality
-            </Label>
+          <FieldWrapper label="Sleep Quality" isValid={!!formData.sleepQuality} icon={<Moon className="w-5 h-5" />}>
             <Select value={formData.sleepQuality} onValueChange={(value) => onInputChange("sleepQuality", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="How would you rate your sleep?" />
@@ -116,13 +109,9 @@ export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: Asses
                 <SelectItem value="poor">Poor (less than 5 hours, often restless)</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </FieldWrapper>
 
-          <div>
-            <Label className="flex items-center gap-2 mb-2">
-              <Zap className="w-5 h-5" />
-              Energy Levels
-            </Label>
+          <FieldWrapper label="Energy Levels" isValid={!!formData.energyLevels} icon={<Zap className="w-5 h-5" />}>
             <Select value={formData.energyLevels} onValueChange={(value) => onInputChange("energyLevels", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="How are your energy levels?" />
@@ -134,14 +123,24 @@ export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: Asses
                 <SelectItem value="fluctuates">Fluctuates (varies day to day)</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </FieldWrapper>
         </div>
 
-        <div>
-          <Label className="flex items-center gap-2 mb-2">
-            <Laptop className="w-5 h-5" />
-            Work Type
-          </Label>
+        <FieldWrapper label="Stress Level" isValid={!!formData.stressLevel} icon={<Activity className="w-5 h-5" />}>
+          <Select value={formData.stressLevel} onValueChange={(value) => onInputChange("stressLevel", value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="How would you rate your stress level?" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low (rarely stressed)</SelectItem>
+              <SelectItem value="moderate">Moderate (occasionally stressed)</SelectItem>
+              <SelectItem value="high">High (frequently stressed)</SelectItem>
+              <SelectItem value="very-high">Very High (constantly stressed)</SelectItem>
+            </SelectContent>
+          </Select>
+        </FieldWrapper>
+
+        <FieldWrapper label="Work Type" isValid={!!formData.workType} icon={<Laptop className="w-5 h-5" />}>
           <Select value={formData.workType} onValueChange={(value) => onInputChange("workType", value)}>
             <SelectTrigger>
               <SelectValue placeholder="What best describes your work?" />
@@ -153,7 +152,7 @@ export const HealthInfoStep = ({ formData, onInputChange, onArrayChange }: Asses
               <SelectItem value="labor">Physically demanding (heavy lifting, manual labor)</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </FieldWrapper>
       </div>
     </div>
   );
