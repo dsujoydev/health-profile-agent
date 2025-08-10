@@ -49,7 +49,7 @@ interface AssessmentResponse {
 }
 
 class HealthAgentService {
-  private baseUrl = import.meta.env.VITE_API_URL;
+  private baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
   async getDynamicGreeting(context: UserContext): Promise<string> {
     try {
@@ -73,17 +73,27 @@ class HealthAgentService {
 
   async getIntelligentAssessment(assessmentData: AssessmentData): Promise<AssessmentResponse> {
     try {
+      console.log("Making API call to:", `${this.baseUrl}/api/health/profile/intelligent-assessment`);
+      console.log("Request payload:", { user_data: assessmentData });
+
       const response = await fetch(`${this.baseUrl}/api/health/profile/intelligent-assessment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_data: assessmentData }),
       });
 
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Error response body:", errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log("Response data:", data);
+      return data;
     } catch (error) {
       console.error("Error fetching intelligent assessment:", error);
       throw error;

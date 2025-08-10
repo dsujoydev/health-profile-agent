@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,97 +13,18 @@ import {
   StringField,
   ArrayField,
 } from "./helpers/assesment.schemas";
-
-// Simple error handler
-const handleError = (message: string) => {
-  console.error(message);
-  window.alert(`Error: ${message}`);
-};
+import healthAgentService, { type AssessmentData } from "@/services/healthAgentService";
+import { toast } from "sonner";
 
 // Import steps and components
 import { PersonalInfoStep, HealthInfoStep, GoalsStep, PreferencesStep } from "./steps";
 import { AssessmentResults } from "./AssessmentResults";
-import {
-  TOTAL_STEPS,
-  GENDER_OPTIONS,
-  ACTIVITY_LEVELS,
-  PRIMARY_GOALS,
-  TIME_COMMITMENT_OPTIONS,
-  WORKOUT_TYPES,
-  DIETARY_RESTRICTIONS,
-  EQUIPMENT_OPTIONS,
-} from "./helpers/assessment.constants";
-
-// Mock service - replace with actual API call
-const submitAssessment = async (data: AssessmentFormData): Promise<string> => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(`# Health & Fitness Assessment Results
-
-## Personal Information
-- **Name:** ${data.name}
-- **Age:** ${data.age}
-- **Gender:** ${GENDER_OPTIONS.find((g) => g.value === data.gender)?.label || data.gender}
-- **Height:** ${data.height} cm
-- **Weight:** ${data.weight} kg
-
-## Health Profile
-- **Activity Level:** ${ACTIVITY_LEVELS.find((a) => a.value === data.activityLevel)?.label || data.activityLevel}
-- **Sleep Quality:** ${data.sleepQuality}
-- **Stress Level:** ${data.stressLevel}
-- **Energy Levels:** ${data.energyLevels}
-- **Work Type:** ${data.workType}
-
-## Goals
-- **Primary Goal:** ${PRIMARY_GOALS.find((g) => g.value === data.primaryGoal)?.label || data.primaryGoal}
-- **Time Commitment:** ${
-        TIME_COMMITMENT_OPTIONS.find((t) => t.value === data.timeCommitment)?.label || data.timeCommitment
-      }
-- **Equipment:** ${data.equipment.map((eq) => EQUIPMENT_OPTIONS.find((e) => e.value === eq)?.label || eq).join(", ")}
-
-## Preferences
-- **Workout Types:** ${data.workoutTypes.map((wt) => WORKOUT_TYPES.find((w) => w.value === wt)?.label || wt).join(", ")}
-- **Dietary Restrictions:** ${
-        data.dietaryRestrictions.length > 0
-          ? data.dietaryRestrictions
-              .map((dr) => DIETARY_RESTRICTIONS.find((d) => d.value === dr)?.label || dr)
-              .join(", ")
-          : "None"
-      }
-
-## Personalized Recommendations
-Based on your assessment, here are our recommendations for you:
-
-### Exercise Plan
-1. **Cardio:** 30 minutes of moderate-intensity exercise 5 days a week
-2. **Strength Training:** 2-3 days a week focusing on major muscle groups
-3. **Flexibility:** Daily stretching routine
-4. **Rest:** At least 1-2 rest days per week
-
-### Nutrition Plan
-- **Caloric Intake:** Approximately 2000-2200 calories per day
-- **Macronutrients:** 40% carbs, 30% protein, 30% fat
-- **Hydration:** At least 8 glasses of water daily
-
-### Lifestyle Recommendations
-- Aim for 7-9 hours of sleep per night
-- Take short breaks every hour if you have a desk job
-- Practice stress-reduction techniques like meditation or deep breathing
-
-${data.additionalNotes ? `### Additional Notes\n${data.additionalNotes}\n` : ""}
-
-*This is a sample assessment. For a complete and personalized plan, please consult with a certified health professional.*`);
-    }, 1500);
-  });
-};
+import { TOTAL_STEPS } from "./helpers/assessment.constants";
 
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [aiAssessment, setAiAssessment] = useState("");
-  const [isLoadingResults, setIsLoadingResults] = useState(false);
 
   const defaultValues: AssessmentFormData = {
     name: "",
@@ -134,6 +56,81 @@ const Assessment = () => {
   const { handleSubmit, trigger, watch, setValue } = methods;
   const progress = (currentStep / TOTAL_STEPS) * 100;
 
+  // React Query mutation for submitting assessment
+  const submitAssessmentMutation = useMutation({
+    mutationFn: async (data: AssessmentFormData) => {
+      // Generate a unique user ID
+      const userId = `user_${Date.now()}`;
+
+      // Prepare assessment data for the AI
+      const assessmentData: AssessmentData = {
+        user_id: userId,
+        assessment_date: new Date().toISOString(),
+        age: parseInt(data.age) || undefined,
+        height: parseInt(data.height) || undefined,
+        weight: parseInt(data.weight) || undefined,
+        gender: data.gender || undefined,
+        activity_level: data.activityLevel || undefined,
+        medical_conditions: data.medicalConditions.length > 0 ? data.medicalConditions : undefined,
+        medications: data.medications || undefined,
+        injuries: data.injuries || undefined,
+        goals: data.primaryGoal ? [data.primaryGoal] : undefined,
+        preferred_activities: data.workoutTypes.length > 0 ? data.workoutTypes : undefined,
+        dietary_preferences: data.dietaryRestrictions.length > 0 ? data.dietaryRestrictions : undefined,
+        time_availability: data.timeCommitment || undefined,
+        equipment: data.equipment.length > 0 ? data.equipment : undefined,
+        // Additional context
+        sleep_quality: data.sleepQuality || undefined,
+        stress_level: data.stressLevel || undefined,
+        energy_levels: data.energyLevels || undefined,
+        work_type: data.workType || undefined,
+      };
+
+      // Store user data in localStorage for future personalization
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("userName", data.name);
+      localStorage.setItem("userGoals", JSON.stringify([data.primaryGoal]));
+      localStorage.setItem("fitnessLevel", data.activityLevel);
+      localStorage.setItem("primaryGoal", data.primaryGoal);
+      localStorage.setItem("availableTime", data.timeCommitment);
+      localStorage.setItem("equipment", JSON.stringify(data.equipment));
+      localStorage.setItem("healthStatus", "assessed");
+      localStorage.setItem("motivationLevel", "high");
+
+      // Get AI assessment
+      const result = await healthAgentService.getIntelligentAssessment(assessmentData);
+      return result.assessment;
+    },
+    onSuccess: (assessment) => {
+      setAiAssessment(assessment);
+      setShowResults(true);
+      toast.success("Assessment submitted successfully!");
+    },
+    onError: (error) => {
+      console.error("Error submitting assessment:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit assessment. Please try again.";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Test API connection
+  const testApiConnection = async () => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${baseUrl}/health`);
+      if (response.ok) {
+        console.log("API is accessible");
+        return true;
+      } else {
+        console.error("API health check failed:", response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("API connection test failed:", error);
+      return false;
+    }
+  };
+
   const nextStep = async () => {
     // Trigger validation for current step fields
     const fields = getStepFields(currentStep);
@@ -159,8 +156,7 @@ const Assessment = () => {
       case 1:
         return ["name", "age", "gender", "height", "weight"];
       case 2:
-        // return ["activityLevel", "sleepQuality", "stressLevel", "energyLevels", "workType"];
-        return [];
+        return ["activityLevel", "sleepQuality", "stressLevel", "energyLevels", "workType"];
       case 3:
         return ["primaryGoal", "timeCommitment"];
       case 4:
@@ -171,19 +167,16 @@ const Assessment = () => {
   };
 
   const onSubmit = async (data: AssessmentFormData) => {
-    console.log("hit");
-    try {
-      setIsLoadingResults(true);
-      setIsSubmitting(true);
-      const result = await submitAssessment(data);
-      setAiAssessment(result);
-      setShowResults(true);
-    } catch (error) {
-      console.error("Error submitting assessment:", error);
-      handleError("Failed to submit assessment. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    console.log("Submitting assessment data:", data);
+
+    // Test API connection first
+    const isApiAccessible = await testApiConnection();
+    if (!isApiAccessible) {
+      toast.error("Cannot connect to the server. Please make sure the backend is running.");
+      return;
     }
+
+    submitAssessmentMutation.mutate(data);
   };
 
   const handleTakeAgain = () => {
@@ -230,7 +223,7 @@ const Assessment = () => {
     return (
       <AssessmentResults
         aiAssessment={aiAssessment}
-        isLoadingResults={isLoadingResults}
+        isLoadingResults={submitAssessmentMutation.isPending}
         onTakeAgain={handleTakeAgain}
       />
     );
@@ -263,7 +256,7 @@ const Assessment = () => {
             type="button"
             variant="outline"
             onClick={prevStep}
-            disabled={currentStep === 1 || isSubmitting}
+            disabled={currentStep === 1 || submitAssessmentMutation.isPending}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -271,13 +264,13 @@ const Assessment = () => {
           </Button>
 
           {currentStep < TOTAL_STEPS ? (
-            <Button type="button" onClick={nextStep} disabled={isSubmitting} className="gap-2">
+            <Button type="button" onClick={nextStep} disabled={submitAssessmentMutation.isPending} className="gap-2">
               Next
               <ArrowRight className="w-4 h-4" />
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting} className="gap-2">
-              {isSubmitting ? (
+            <Button type="submit" disabled={submitAssessmentMutation.isPending} className="gap-2">
+              {submitAssessmentMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Submitting...

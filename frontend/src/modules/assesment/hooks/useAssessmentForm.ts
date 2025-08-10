@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { AssessmentFormData, AssessmentHookReturn } from "../helpers/assessment.type";
 import { TOTAL_STEPS } from "../helpers/assessment.constants";
 import healthAgentService, { type AssessmentData } from "@/services/healthAgentService";
+import { toast } from "sonner";
 
 const initialFormData: AssessmentFormData = {
   // Personal Info
@@ -32,10 +34,8 @@ const initialFormData: AssessmentFormData = {
 export const useAssessmentForm = (): AssessmentHookReturn => {
   const [formData, setFormData] = useState<AssessmentFormData>(initialFormData);
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiAssessment, setAiAssessment] = useState<string>("");
   const [showResults, setShowResults] = useState(false);
-  const [isLoadingResults, setIsLoadingResults] = useState(false);
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
 
@@ -69,15 +69,11 @@ export const useAssessmentForm = (): AssessmentHookReturn => {
     setCurrentStep(1);
     setShowResults(false);
     setAiAssessment("");
-    setIsSubmitting(false);
-    setIsLoadingResults(false);
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    setIsLoadingResults(true);
-
-    try {
+  // React Query mutation for submitting assessment
+  const submitAssessmentMutation = useMutation({
+    mutationFn: async (data: AssessmentFormData) => {
       // Generate a unique user ID
       const userId = `user_${Date.now()}`;
 
@@ -85,50 +81,54 @@ export const useAssessmentForm = (): AssessmentHookReturn => {
       const assessmentData: AssessmentData = {
         user_id: userId,
         assessment_date: new Date().toISOString(),
-        age: parseInt(formData.age) || undefined,
-        height: parseInt(formData.height) || undefined,
-        weight: parseInt(formData.weight) || undefined,
-        gender: formData.gender || undefined,
-        activity_level: formData.activityLevel || undefined,
-        medical_conditions: formData.medicalConditions.length > 0 ? formData.medicalConditions : undefined,
-        medications: formData.medications || undefined,
-        injuries: formData.injuries || undefined,
-        goals: formData.primaryGoal ? [formData.primaryGoal] : undefined,
-        preferred_activities: formData.workoutTypes.length > 0 ? formData.workoutTypes : undefined,
-        dietary_preferences: formData.dietaryRestrictions.length > 0 ? formData.dietaryRestrictions : undefined,
-        time_availability: formData.timeCommitment || undefined,
-        equipment: formData.equipment.length > 0 ? formData.equipment : undefined,
+        age: parseInt(data.age) || undefined,
+        height: parseInt(data.height) || undefined,
+        weight: parseInt(data.weight) || undefined,
+        gender: data.gender || undefined,
+        activity_level: data.activityLevel || undefined,
+        medical_conditions: data.medicalConditions.length > 0 ? data.medicalConditions : undefined,
+        medications: data.medications || undefined,
+        injuries: data.injuries || undefined,
+        goals: data.primaryGoal ? [data.primaryGoal] : undefined,
+        preferred_activities: data.workoutTypes.length > 0 ? data.workoutTypes : undefined,
+        dietary_preferences: data.dietaryRestrictions.length > 0 ? data.dietaryRestrictions : undefined,
+        time_availability: data.timeCommitment || undefined,
+        equipment: data.equipment.length > 0 ? data.equipment : undefined,
         // Additional context
-        sleep_quality: formData.sleepQuality || undefined,
-        stress_level: formData.stressLevel || undefined,
-        energy_levels: formData.energyLevels || undefined,
-        work_type: formData.workType || undefined,
+        sleep_quality: data.sleepQuality || undefined,
+        stress_level: data.stressLevel || undefined,
+        energy_levels: data.energyLevels || undefined,
+        work_type: data.workType || undefined,
       };
-
-      // Get AI assessment
-      const result = await healthAgentService.getIntelligentAssessment(assessmentData);
 
       // Store user data in localStorage for future personalization
       localStorage.setItem("userId", userId);
-      localStorage.setItem("userName", formData.name);
-      localStorage.setItem("userGoals", JSON.stringify([formData.primaryGoal]));
-      localStorage.setItem("fitnessLevel", formData.activityLevel);
-      localStorage.setItem("primaryGoal", formData.primaryGoal);
-      localStorage.setItem("availableTime", formData.timeCommitment);
-      localStorage.setItem("equipment", JSON.stringify(formData.equipment));
+      localStorage.setItem("userName", data.name);
+      localStorage.setItem("userGoals", JSON.stringify([data.primaryGoal]));
+      localStorage.setItem("fitnessLevel", data.activityLevel);
+      localStorage.setItem("primaryGoal", data.primaryGoal);
+      localStorage.setItem("availableTime", data.timeCommitment);
+      localStorage.setItem("equipment", JSON.stringify(data.equipment));
       localStorage.setItem("healthStatus", "assessed");
       localStorage.setItem("motivationLevel", "high");
 
-      setAiAssessment(result.assessment);
+      // Get AI assessment
+      const result = await healthAgentService.getIntelligentAssessment(assessmentData);
+      return result.assessment;
+    },
+    onSuccess: (assessment) => {
+      setAiAssessment(assessment);
       setShowResults(true);
-      setIsLoadingResults(false);
-    } catch (error) {
+      toast.success("Assessment submitted successfully!");
+    },
+    onError: (error) => {
       console.error("Error submitting assessment:", error);
-      setIsLoadingResults(false);
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
+      toast.error("Failed to submit assessment. Please try again.");
+    },
+  });
+
+  const handleSubmit = async () => {
+    submitAssessmentMutation.mutate(formData);
   };
 
   return {
@@ -136,9 +136,9 @@ export const useAssessmentForm = (): AssessmentHookReturn => {
     currentStep,
     totalSteps: TOTAL_STEPS,
     progress,
-    isSubmitting,
+    isSubmitting: submitAssessmentMutation.isPending,
     showResults,
-    isLoadingResults,
+    isLoadingResults: submitAssessmentMutation.isPending,
     aiAssessment,
     handleInputChange,
     handleArrayChange,
