@@ -115,12 +115,13 @@ const Assessment = () => {
     medications: "",
     injuries: "",
     sleepQuality: "",
+    stressLevel: "",
     energyLevels: "",
     workType: "",
     primaryGoal: "",
     timeCommitment: "",
-    availableEquipment: [],
-    workoutPreferences: [],
+    equipment: [],
+    workoutTypes: [],
     dietaryRestrictions: [],
     additionalNotes: "",
   };
@@ -170,6 +171,7 @@ const Assessment = () => {
   };
 
   const onSubmit = async (data: AssessmentFormData) => {
+    console.log("hit");
     try {
       setIsLoadingResults(true);
       setIsSubmitting(true);

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { AssessmentFormData, AssessmentHookReturn } from "../types/assessment";
-import { TOTAL_STEPS } from "../constants/assessmentOptions";
+import { AssessmentFormData, AssessmentHookReturn } from "../helpers/assessment.type";
+import { TOTAL_STEPS } from "../helpers/assessment.constants";
 import healthAgentService, { type AssessmentData } from "@/services/healthAgentService";
 
 const initialFormData: AssessmentFormData = {

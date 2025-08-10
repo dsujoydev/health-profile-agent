@@ -2,11 +2,11 @@ import { Target, Clock, Dumbbell } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AssessmentStepProps } from "../helpers/assesment.schemas";
+import { ArrayField, AssessmentStepProps } from "../helpers/assesment.schemas";
 import { PRIMARY_GOALS, TIME_COMMITMENT_OPTIONS, EQUIPMENT_OPTIONS } from "../helpers/assessment.constants";
 
 export const GoalsStep = ({ formData, onInputChange, onArrayChange }: AssessmentStepProps) => {
-  const handleCheckboxChange = (field: string, value: string, checked: boolean) => {
+  const handleCheckboxChange = (field: ArrayField, value: string, checked: boolean) => {
     if (onArrayChange) {
       onArrayChange(field, value, checked);
     }
