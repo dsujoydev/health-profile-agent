@@ -2,13 +2,13 @@ import { Heart, Utensils, MessageSquare } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AssessmentStepProps } from "../helpers/assesment.schemas";
+import { AssessmentStepProps, ArrayField } from "../helpers/assesment.schemas";
 import { WORKOUT_TYPES, DIETARY_RESTRICTIONS } from "../helpers/assessment.constants";
 
 export const PreferencesStep = ({ formData, onInputChange, onArrayChange }: AssessmentStepProps) => {
   const handleCheckboxChange = (field: string, value: string, checked: boolean) => {
     if (onArrayChange) {
-      onArrayChange(field, value, checked);
+      onArrayChange(field as ArrayField, value, checked);
     }
   };
 
